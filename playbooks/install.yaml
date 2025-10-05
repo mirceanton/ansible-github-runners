@@ -12,7 +12,7 @@
 
     - name: Install required packages
       ansible.builtin.apt:
-        name: [git, curl, wget, unzip, htop, jq, libicu-dev, tar, sudo]
+        name: [git, curl, wget, unzip, htop, jq, libicu-dev, tar, sudo, gpg-agent]
         state: present
 
     - name: Create runner user
