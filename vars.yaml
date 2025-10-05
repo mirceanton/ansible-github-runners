@@ -3,7 +3,7 @@ ansible_python_interpreter: /usr/bin/python3.13
 
 # renovate: datasource=github-releases depName=actions/runner
 runner_version: "2.328.0"
-runner_architecture: "x64"
+runner_architecture: "arm64"
 
 github_runner_url: |
   https://github.com/actions/runner/releases/download/v{{ runner_version }}/actions-runner-linux-{{ runner_architecture }}-{{ runner_version }}.tar.gz
