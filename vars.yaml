@@ -1,5 +1,7 @@
 ---
 ansible_python_interpreter: /usr/bin/python3.13
+ansible_pipelining: true
+allow_world_readable_tmpfiles: true
 
 # renovate: datasource=github-releases depName=actions/runner
 runner_version: "2.328.0"
