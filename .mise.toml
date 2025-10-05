@@ -1,0 +1,28 @@
+[tools]
+"pipx:ansible-core" = "2.19"
+direnv = "latest"
+
+# Linters
+yamllint = "1.37"
+actionlint = "1.7"
+"pipx:ansible-lint" = "latest"
+
+# =================================================================================================
+# TASKS 
+# =================================================================================================
+[tasks.install]
+description = "Run the install playbook"
+run = "ansible-playbook -i inventory.ini playbooks/install.yaml"
+
+[tasks.uninstall]
+description = "Run the uninstall playbook"
+run = "ansible-playbook -i inventory.ini playbooks/uninstall.yaml"
+
+[tasks.update]
+description = "Run the update playbook"
+run = "ansible-playbook -i inventory.ini playbooks/update.yaml"
+
+[tasks.reboot]
+description = "Run the reboot playbook"
+run = "ansible-playbook -i inventory.ini playbooks/reboot.yaml"
+
