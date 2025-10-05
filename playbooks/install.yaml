@@ -1,0 +1,92 @@
+---
+- name: Setup GitHub Self-Hosted Runners
+  hosts: all
+  become: true
+  vars_files: ["../vars.yaml"]
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name: [git, curl, wget, unzip, htop, jq, libicu-dev, tar, sudo]
+        state: present
+
+    - name: Create runner user
+      ansible.builtin.user:
+        name: "{{ runner_user }}"
+        shell: /bin/bash
+        create_home: true
+        system: false
+
+    - name: Create runner directory
+      ansible.builtin.file:
+        path: "{{ runner_dir }}"
+        state: directory
+        owner: "{{ runner_user }}"
+        group: "{{ runner_user }}"
+        mode: "0755"
+
+    - name: Download GitHub Actions Runner
+      ansible.builtin.get_url:
+        url: "{{ github_runner_url }}"
+        dest: "/tmp/actions-runner.tar.gz"
+        mode: "0644"
+
+    - name: Extract runner archive
+      ansible.builtin.unarchive:
+        src: "/tmp/actions-runner.tar.gz"
+        dest: "{{ runner_dir }}"
+        remote_src: true
+        owner: "{{ runner_user }}"
+        group: "{{ runner_user }}"
+
+    - name: Get runner registration token
+      ansible.builtin.uri:
+        url: "https://api.github.com/orgs/{{ github_org }}/actions/runners/registration-token"
+        method: POST
+        headers:
+          Authorization: "token {{ github_token }}"
+          Accept: "application/vnd.github.v3+json"
+        status_code: 201
+      register: registration_token
+      no_log: true
+
+    - name: Configure runner
+      ansible.builtin.command: |
+        /bin/bash ./config.sh --url https://github.com/{{ github_org }} \
+          --token {{ registration_token.json.token }} \
+          --name {{ runner_name }} \
+          --labels {{ runner_labels }} \
+          --work _work \
+          --unattended
+      args:
+        chdir: "{{ runner_dir }}"
+        creates: "{{ runner_dir }}/.runner"
+      become_user: "{{ runner_user }}"
+      # no_log: true
+
+    - name: Install runner service
+      ansible.builtin.command: ./svc.sh install {{ runner_user }}
+      args:
+        chdir: "{{ runner_dir }}"
+        creates: /etc/systemd/system/actions.runner.*
+
+    - name: Start and enable runner service
+      ansible.builtin.command: ./svc.sh start
+      args:
+        chdir: "{{ runner_dir }}"
+
+    - name: Check runner service status
+      ansible.builtin.command: ./svc.sh status
+      args:
+        chdir: "{{ runner_dir }}"
+      register: runner_status
+      changed_when: false
+
+    - name: Display runner status
+      ansible.builtin.debug:
+        var: runner_status.stdout_lines

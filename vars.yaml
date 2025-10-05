@@ -1,0 +1,19 @@
+---
+ansible_python_interpreter: /usr/bin/python3.13
+
+# renovate: datasource=github-releases depName=actions/runner
+runner_version: "2.328.0"
+runner_architecture: "x64"
+
+github_runner_url: |
+  https://github.com/actions/runner/releases/download/v{{ runner_version }}/actions-runner-linux-{{ runner_architecture }}-{{ runner_version }}.tar.gz
+
+runner_name: "infra-runner-{{ ansible_hostname }}"
+runner_labels: "self-hosted,linux,infra"
+
+runner_user: github-runner
+runner_home: /home/{{ runner_user }}
+runner_dir: "{{ runner_home }}/actions-runner"
+
+github_org: "mirceanton"
+github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
