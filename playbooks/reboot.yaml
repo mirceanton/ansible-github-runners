@@ -1,0 +1,13 @@
+---
+- name: Reboot Node
+  hosts: all
+  become: true
+  vars_files: ["../vars.yaml"]
+
+  tasks:
+    - name: Reboot
+      ansible.builtin.reboot:
+        msg: "Reboot initiated by Ansible"
+        pre_reboot_delay: 5
+        post_reboot_delay: 30
+        reboot_timeout: 600
