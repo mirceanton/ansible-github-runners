@@ -1,0 +1,75 @@
+---
+- name: Uninstall GitHub Self-Hosted Runners
+  hosts: all
+  become: true
+  vars_files: ["../vars.yaml"]
+
+  tasks:
+    - name: Check if runner directory exists
+      ansible.builtin.stat:
+        path: "{{ runner_dir }}"
+      register: runner_dir_stat
+
+    - name: Stop runner service
+      ansible.builtin.command: ./svc.sh stop
+      args:
+        chdir: "{{ runner_dir }}"
+      when: runner_dir_stat.stat.exists
+      failed_when: false
+
+    - name: Uninstall runner service
+      ansible.builtin.command: ./svc.sh uninstall
+      args:
+        chdir: "{{ runner_dir }}"
+      when: runner_dir_stat.stat.exists
+      failed_when: false
+
+    - name: Get runner removal token
+      ansible.builtin.uri:
+        url: "https://api.github.com/orgs/{{ github_org }}/actions/runners/remove-token"
+        method: POST
+        headers:
+          Authorization: "token {{ github_token }}"
+          Accept: "application/vnd.github.v3+json"
+        status_code: 201
+      register: removal_token
+      when: runner_dir_stat.stat.exists
+      no_log: true
+
+    - name: Remove runner from GitHub
+      ansible.builtin.command: |
+        /bin/bash ./config.sh remove --token {{ removal_token.json.token }}
+      args:
+        chdir: "{{ runner_dir }}"
+      become_user: "{{ runner_user }}"
+      when: runner_dir_stat.stat.exists and removal_token is defined
+      failed_when: false
+      no_log: true
+
+    - name: Remove runner directory
+      ansible.builtin.file:
+        path: "{{ runner_dir }}"
+        state: absent
+      when: runner_dir_stat.stat.exists
+
+    - name: Remove runner user
+      ansible.builtin.user:
+        name: "{{ runner_user }}"
+        state: absent
+        remove: true
+
+    - name: Remove systemd service files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/actions.runner.{{ github_org }}-{{ runner_name }}.service
+      failed_when: false
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: "GitHub runner successfully uninstalled from {{ ansible_hostname }}"
